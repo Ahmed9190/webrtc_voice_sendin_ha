@@ -23,11 +23,11 @@ http:
 
 # Custom panels for our voice streaming interface
 panel_custom:
-  - name: voice-streaming-card
-    sidebar_title: Voice Stream
+  - name: voice-sending-card
+    sidebar_title: Voice Send
     sidebar_icon: mdi:microphone
     url_path: voice-streaming
-    module_url: /local/voice-streaming-card-relay.js
+    module_url: /local/voice-sending-card.js
   - name: voice-receiving-card
     sidebar_title: Voice Receive
     sidebar_icon: mdi:headphones

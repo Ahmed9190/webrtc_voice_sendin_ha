@@ -10,6 +10,7 @@ A complete solution for real-time voice streaming in Home Assistant using WebRTC
 - **Secure communication**: HTTPS proxying with SSL certificates
 - **Performance optimization**: Configurable settings for minimal latency
 - **Error handling**: Automatic reconnection and recovery mechanisms
+- **Voice sending capabilities**: Dedicated panel for sending voice streams
 - **Voice receiving capabilities**: Dedicated panel for receiving and playing back voice streams
 
 ## Architecture
@@ -18,7 +19,7 @@ The solution consists of four main components:
 
 1. **Home Assistant**: The core home automation platform
 2. **WebRTC Backend**: Python server handling WebRTC connections and audio processing
-3. **Frontend Dashboard Card**: Custom panel for sending voice streams
+3. **Voice Sending Card**: Custom panel for sending voice streams
 4. **Voice Receiving Card**: Custom panel for receiving and playing back voice streams
 
 ## Prerequisites
@@ -59,7 +60,7 @@ home_assistant/
 ├── config/                 # Home Assistant configuration
 │   ├── configuration.yaml  # Main configuration file
 │   └── www/               # Static files directory
-│       ├── voice-streaming-card.js  # Custom panel frontend for sending
+│       ├── voice-sending-card.js  # Custom panel frontend for sending
 │       └── voice-receiving-card.js  # Custom panel frontend for receiving
 ├── webrtc_backend/         # WebRTC backend service
 │   ├── webrtc_server.py    # Main server implementation
@@ -110,12 +111,12 @@ The Home Assistant configuration is in `config/configuration.yaml`:
 ```yaml
 # Custom panels for our voice streaming interface
 panel_custom:
-  - name: voice-streaming
-    sidebar_title: Voice Stream
+  - name: voice-sending-card
+    sidebar_title: Voice Send
     sidebar_icon: mdi:microphone
     url_path: voice-streaming
-    module_url: /local/voice-streaming-card.js
-  - name: voice-receiving
+    module_url: /local/voice-sending-card.js
+  - name: voice-receiving-card
     sidebar_title: Voice Receive
     sidebar_icon: mdi:headphones
     url_path: voice-receiving
@@ -201,7 +202,7 @@ docker-compose logs -f
 
 ### Frontend Development
 
-The frontend cards are written in JavaScript using Web Components. Changes to `config/www/voice-streaming-card.js` and `config/www/voice-receiving-card.js` will be reflected immediately in Home Assistant.
+The frontend cards are written in JavaScript using Web Components. Changes to `config/www/voice-sending-card.js` and `config/www/voice-receiving-card.js` will be reflected immediately in Home Assistant.
 
 ## Contributing
 
