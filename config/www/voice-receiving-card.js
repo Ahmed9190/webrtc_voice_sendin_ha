@@ -26,6 +26,7 @@
       this.selectedStream = null;
       this.audioElement = null;
       this.audioBuffer = [];
+      this.isWatching = false; // Flag to track if we're watching for streams
     }
 
     // Set hass object
@@ -96,6 +97,22 @@
           .receive-button.connecting {
             background: #ff9800;
             color: white;
+          }
+          
+          .watch-button {
+            width: 120px;
+            height: 40px;
+            border-radius: 4px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #9c27b0;
+            color: white;
+          }
+          
+          .watch-button:hover {
+            opacity: 0.8;
           }
           
           @keyframes pulse {
@@ -196,8 +213,19 @@
               ${this.isActive ? '🔊' : '🎧'}
             </button>
             
+            <button 
+              class="watch-button"
+              id="watchButton"
+            >
+              ${this.isWatching ? 'Stop Watching' : 'Watch Streams'}
+            </button>
+            
             <div class="status">
               <div>Status: <span id="statusText">${this.connectionStatus}</span></div>
+              ${this.selectedStream ? 
+                `<div>Stream: ${this.selectedStream.substring(0, 20)}...</div>` : 
+                '<div>No stream selected</div>'
+              }
               <div class="latency-indicator ${this.getLatencyClass()}">
                 Latency: <span id="latencyText">${this.latency}</span>ms
               </div>
@@ -206,7 +234,7 @@
           
           <div class="error" id="errorMessage">${this.errorMessage}</div>
           
-          <div class="stream-list" id="streamList">
+          <div class="stream-list" id="streamList" style="display: none;">
             <h3>Available Streams:</h3>
             ${this.availableStreams.length > 0 ? 
               this.availableStreams.map(streamId => `
@@ -245,6 +273,15 @@
         this.toggleReceiving();
       });
       
+      this.shadowRoot.getElementById('watchButton').addEventListener('click', () => {
+        if (this.isWatching) {
+          this.stopWatching();
+        } else {
+          this.startWatching();
+        }
+        this.render(); // Re-render to update button text
+      });
+      
       // Add stream selection listeners
       const streamItems = this.shadowRoot.querySelectorAll('.stream-item');
       streamItems.forEach(item => {
@@ -267,42 +304,89 @@
       this.render();
     }
 
+    // Automatically connect and fetch available streams
+    async autoConnect() {
+      try {
+        await this.connectWebSocket();
+        // Wait a bit to ensure WebSocket is fully connected
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Request list of available streams
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+          this.websocket.send(JSON.stringify({
+            type: 'get_available_streams'
+          }));
+        }
+      } catch (error) {
+        console.error('Error in autoConnect:', error);
+      }
+    }
+
+    // Start watching for streams (this is when we want to start automatically receiving)
+    async startWatching() {
+      this.isWatching = true;
+      // Automatically connect and start watching for streams
+      await this.autoConnect();
+      
+      // Also set up a periodic check for streams
+      this.watchInterval = setInterval(() => {
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+          this.websocket.send(JSON.stringify({
+            type: 'get_available_streams'
+          }));
+        }
+      }, 5000); // Check every 5 seconds
+      
+      // Re-render to update UI
+      this.render();
+    }
+
+    // Stop watching for streams
+    stopWatching() {
+      this.isWatching = false;
+      if (this.watchInterval) {
+        clearInterval(this.watchInterval);
+        this.watchInterval = null;
+      }
+      // Re-render to update UI
+      this.render();
+    }
+
     // Connect to WebSocket
     async connectWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/api/voice-streaming/ws`;
-      
-      this.websocket = new WebSocket(wsUrl);
-      
-      this.websocket.onopen = () => {
-        console.log('WebSocket connected for voice receiving');
-        this.connectionAttempts = 0;
-        this.updateStatus('connected');
-        this.errorMessage = '';
-        
-        // Request list of available streams
-        this.websocket.send(JSON.stringify({
-          type: 'get_available_streams'
-        }));
-      };
-      
-      this.websocket.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-        await this.handleWebSocketMessage(data);
-      };
-      
-      this.websocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        this.updateStatus('error');
-        this.errorMessage = 'WebSocket connection error';
-      };
-      
-      this.websocket.onclose = () => {
-        console.log('WebSocket closed');
-        if (this.connectionStatus !== 'error') {
-          this.updateStatus('disconnected');
+      return new Promise((resolve, reject) => {
+        try {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const wsUrl = `${protocol}//${window.location.host}/api/voice-streaming/ws`;
+          
+          this.websocket = new WebSocket(wsUrl);
+          
+          this.websocket.onopen = () => {
+            console.log('WebSocket connected');
+            this.connectionAttempts = 0;
+            resolve();
+          };
+          
+          this.websocket.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            await this.handleWebSocketMessage(data);
+          };
+          
+          this.websocket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            reject(error);
+          };
+          
+          this.websocket.onclose = () => {
+            console.log('WebSocket closed');
+            if (this.connectionStatus !== 'error') {
+              this.updateStatus('disconnected');
+            }
+          };
+        } catch (error) {
+          console.error('Error connecting to WebSocket:', error);
+          reject(error);
         }
-      };
+      });
     }
 
     // Handle WebSocket messages
@@ -311,14 +395,28 @@
         case 'available_streams':
           this.availableStreams = data.streams;
           this.render();
+          // If we're watching and there are streams available, automatically start receiving
+          if (this.isWatching && this.availableStreams.length > 0 && !this.selectedStream && !this.isActive) {
+            this.selectedStream = this.availableStreams[0];
+            setTimeout(() => {
+              this.startReceiving();
+            }, 500); // Small delay to ensure UI is updated
+          }
           break;
           
         case 'stream_available':
           // Add to available streams if not already there
           if (!this.availableStreams.includes(data.stream_id)) {
             this.availableStreams.push(data.stream_id);
+            this.render();
+            // If we're watching and this is the first stream, automatically start receiving
+            if (this.isWatching && this.availableStreams.length === 1 && !this.selectedStream && !this.isActive) {
+              this.selectedStream = data.stream_id;
+              setTimeout(() => {
+                this.startReceiving();
+              }, 500); // Small delay to ensure UI is updated
+            }
           }
-          this.render();
           break;
           
         case 'stream_ended':
@@ -367,6 +465,18 @@
       if (this.isActive) {
         await this.stopReceiving();
       } else {
+        // If we're not watching yet, start watching
+        if (!this.isWatching) {
+          await this.startWatching();
+        }
+        // If no streams available, try to fetch them again
+        if (this.availableStreams.length === 0 && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+          this.websocket.send(JSON.stringify({
+            type: 'get_available_streams'
+          }));
+          // Wait a bit for the streams to be fetched
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
         await this.startReceiving();
       }
     }
@@ -386,8 +496,16 @@
           this.selectedStream = this.availableStreams[0];
         }
         
+        // If still no stream selected, wait a bit and try again
         if (!this.selectedStream) {
-          throw new Error('No stream selected');
+          // This might happen if the stream list hasn't been updated yet
+          console.log('No stream selected, waiting for streams...');
+          return;
+        }
+        
+        // If we're already receiving this stream, just return
+        if (this.isActive) {
+          return;
         }
         
         // Create RTCPeerConnection with optimized settings
@@ -425,7 +543,7 @@
 
         // Handle ICE candidates
         this.peerConnection.onicecandidate = (event) => {
-          if (event.candidate) {
+          if (event.candidate && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
             this.websocket.send(JSON.stringify({
               type: 'ice_candidate',
               candidate: event.candidate
@@ -433,7 +551,19 @@
           }
         };
 
-        // Request to join the selected stream
+        // Handle ICE connection state changes
+        this.peerConnection.oniceconnectionstatechange = () => {
+          console.log('ICE connection state:', this.peerConnection.iceConnectionState);
+          if (this.peerConnection.iceConnectionState === 'failed' || 
+              this.peerConnection.iceConnectionState === 'disconnected') {
+            console.log('ICE connection failed or disconnected');
+            this.updateStatus('error');
+            this.errorMessage = 'Connection failed';
+            this.updateError();
+          }
+        };
+
+        // Request to start receiving the selected stream
         this.websocket.send(JSON.stringify({
           type: 'start_receiving',
           stream_id: this.selectedStream
@@ -570,6 +700,24 @@
       const errorElement = this.shadowRoot.getElementById('errorMessage');
       if (errorElement) {
         errorElement.textContent = this.errorMessage;
+      }
+    }
+
+    // Disconnected callback
+    disconnectedCallback() {
+      // Clean up watching interval if it exists
+      this.stopWatching();
+      
+      // Clean up WebSocket connection
+      if (this.websocket) {
+        this.websocket.close();
+        this.websocket = null;
+      }
+      
+      // Clean up peer connection
+      if (this.peerConnection) {
+        this.peerConnection.close();
+        this.peerConnection = null;
       }
     }
   }
