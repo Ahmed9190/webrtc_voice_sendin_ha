@@ -1,0 +1,10 @@
+ssh:
+  username: ahmed
+  password: your_secure_password
+  authorized_keys:
+    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEgKYzeGHXEyc8zqTdOSphjIzCvR/VLOKTuQfAULnXsU ahmed.waleed919@outlook.com"
+  sftp: true
+  compatibility_mode: false
+  allow_agent_forwarding: false
+  allow_remote_port_forwarding: false
+  allow_tcp_forwarding: false

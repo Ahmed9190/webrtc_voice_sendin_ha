@@ -1,0 +1,17 @@
+start_recording:
+  name: Start recording
+  description: Start voice recording session
+  fields:
+    duration:
+      name: Duration
+      description: Recording duration in seconds (optional)
+      example: 10
+      selector:
+        number:
+          min: 1
+          max: 300
+          unit_of_measurement: seconds
+
+stop_recording:
+  name: Stop recording
+  description: Stop voice recording session

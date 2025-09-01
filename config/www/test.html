@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Page</title>
+    <script src="/local/hello-world-card.js"></script>
+</head>
+<body>
+    <div style="padding: 20px;">
+        <h1>Direct Test Page</h1>
+        <p>This is a direct test page to see if our custom element works.</p>
+        
+        <hello-world-card></hello-world-card>
+        
+        <p>If you see a card above with "Hello World Card" as the header, then custom elements are working correctly.</p>
+    </div>
+    
+    <script>
+        // Simulate hass object
+        document.addEventListener('DOMContentLoaded', function() {
+            const card = document.querySelector('hello-world-card');
+            if (card) {
+                card.hass = {
+                    states: {},
+                    services: {},
+                    config: {}
+                };
+                card.setConfig({});
+            }
+        });
+    </script>
+</body>
+</html>

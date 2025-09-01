@@ -1,0 +1,23 @@
+start_recording:
+  name: Start Recording
+  description: Start voice recording
+  fields:
+    entity_id:
+      name: Entity
+      description: Entity to start recording on
+      required: false
+      selector:
+        entity:
+          domain: voice_streaming
+
+stop_recording:
+  name: Stop Recording
+  description: Stop voice recording
+  fields:
+    entity_id:
+      name: Entity
+      description: Entity to stop recording on
+      required: false
+      selector:
+        entity:
+          domain: voice_streaming

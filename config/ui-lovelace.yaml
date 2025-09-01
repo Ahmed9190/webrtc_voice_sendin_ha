@@ -1,0 +1,10 @@
+# Simple Lovelace dashboard for testing custom cards
+title: Test Dashboard
+views:
+  - title: Test View
+    cards:
+      - type: custom:simple-hello-world-card
+      - type: entities
+        title: Test Entities
+        entities:
+          - sun.sun

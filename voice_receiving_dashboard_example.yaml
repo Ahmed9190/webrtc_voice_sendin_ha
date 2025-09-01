@@ -1,0 +1,10 @@
+# Example dashboard configuration for using the voice receiving card
+#
+# To use this in Home Assistant:
+# 1. Go to Overview > Dashboards
+# 2. Create a new dashboard or edit an existing one
+# 3. Add a new card and select "Manual" or "Custom card"
+# 4. Paste this configuration
+
+type: 'custom:voice-receiving-card'
+name: Voice Receiving

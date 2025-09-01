@@ -1,0 +1,49 @@
+# Basic configuration
+default_config:
+
+# Enable frontend
+frontend:
+
+# Enable WebSocket API for real-time communication
+websocket_api:
+
+# Enable REST API
+api:
+
+# HTTP configuration for reverse proxy
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - 10.0.0.0/8
+  cors_allowed_origins:
+    - https://localhost:443
+    - https://homeassistant.local:443
+
+# Custom panels for our voice streaming interface
+panel_custom:
+  - name: voice-streaming-card
+    sidebar_title: Voice Stream
+    sidebar_icon: mdi:microphone
+    url_path: voice-streaming
+    module_url: /local/voice-streaming-card-relay.js
+  - name: voice-receiving-card
+    sidebar_title: Voice Receive
+    sidebar_icon: mdi:headphones
+    url_path: voice-receiving
+    module_url: /local/voice-receiving-card.js
+  - name: voice-receiving-card
+    sidebar_title: Voice Receive
+    sidebar_icon: mdi:headphones
+    url_path: voice-receiving
+    module_url: /local/voice-receiving-card.js
+
+# Voice streaming component
+voice_streaming:
+
+# Logging for debugging
+logger:
+  default: info
+  logs:
+    custom_components.voice_streaming: debug
