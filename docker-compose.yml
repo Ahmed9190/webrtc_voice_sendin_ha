@@ -50,7 +50,8 @@ services:
       - "3478:3478/udp"
       - "5349:5349"
       - "5349:5349/udp"
-      - "49152-65535:49152-65535/udp"
+      # Use a more restricted port range to avoid permission issues
+      - "49152-49252:49152-49252/udp"
     environment:
       - TZ=Africa/Cairo
       - EXTERNAL_IP=${EXTERNAL_IP:-127.0.0.1}

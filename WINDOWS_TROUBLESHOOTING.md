@@ -19,7 +19,9 @@
    - UDP 3478 (TURN)
    - TCP 5349 (TURN TLS)
    - UDP 5349 (TURN TLS)
-   - UDP 49152-65535 (TURN relay ports)
+   - UDP 49152-49252 (TURN relay ports)
+
+Note: The port range has been restricted to avoid Windows permission issues. The full range (49152-65535) may cause access permission errors on Windows.
 
 ### 3. Network Interface Issues
 
@@ -59,6 +61,16 @@ To test if your TURN server is working:
    docker compose logs voice_streaming
    ```
 
+## Port Permission Issues
+
+**Problem**: Error message "ports are not available: exposing port UDP 0.0.0.0:55174 -> 127.0.0.1:0: listen udp 0.0.0.0:55174: bind: An attempt was made to access a socket in a way forbidden by its access permissions."
+
+**Solution**: 
+1. The system now uses a restricted port range (49152-49252) instead of the full range
+2. Make sure Windows Firewall allows Docker Desktop to access these ports
+3. Run Docker Desktop as Administrator if permission issues persist
+4. Check if any other applications are using ports in this range
+
 ## Configuration Notes
 
 The system now uses:
@@ -66,6 +78,7 @@ The system now uses:
 - A local TURN server (coturn) for NAT traversal
 - Enhanced ICE candidate logging for debugging
 - Improved reconnection logic
+- Restricted port range to avoid Windows permission issues
 
 If you continue to experience issues, please provide:
 1. Browser console logs

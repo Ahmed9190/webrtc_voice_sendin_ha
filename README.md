@@ -159,6 +159,7 @@ The solution is optimized for minimal latency with:
    - Optimized Nginx proxy settings
    - Direct WebSocket communication
    - TURN server for NAT traversal
+   - Restricted port range (49152-49252) for Windows compatibility
 
 ## Testing
 
