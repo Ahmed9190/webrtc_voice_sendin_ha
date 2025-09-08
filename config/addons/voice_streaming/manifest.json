@@ -1,0 +1,9 @@
+{
+  "domain": "voice_streaming",
+  "name": "Voice Streaming",
+  "documentation": "https://github.com/custom-components/voice_streaming",
+  "dependencies": [],
+  "codeowners": ["@aw"],
+  "requirements": [],
+  "version": "1.0.0"
+}
