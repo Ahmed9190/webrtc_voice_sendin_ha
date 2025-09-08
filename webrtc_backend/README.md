@@ -19,7 +19,7 @@ This is the backend service for the Home Assistant Voice Streaming add-on. It pr
 
 1. Make sure you have Docker and Docker Compose installed
 2. Navigate to the root directory of the project
-3. Run `docker-compose up -d` to start all services
+3. Run `docker compose up -d` to start all services
 
 ## Usage
 
@@ -51,6 +51,7 @@ python test_server.py
 ## Architecture
 
 The server is built using:
+
 - aiohttp for the web server
 - aiortc for WebRTC implementation
 - asyncio for asynchronous operations

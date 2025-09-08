@@ -6,7 +6,7 @@ echo "Testing Voice Streaming Setup"
 echo "============================="
 
 echo "1. Checking if Docker services are running..."
-docker-compose ps
+docker compose ps
 
 echo -e "\n2. Testing Home Assistant health..."
 curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://localhost/health

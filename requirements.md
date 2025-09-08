@@ -13,7 +13,7 @@ First, ensure Docker and Docker Compose are properly installed on Manjaro:
 sudo pacman -Syu
 
 # Install Docker and Docker Compose
-sudo pacman -S docker docker-compose
+sudo pacman -S docker docker compose
 
 # Enable and start Docker service
 sudo systemctl enable docker.service
@@ -38,10 +38,10 @@ cd ~/homeassistant
 mkdir -p config addons media backup
 ```
 
-Create a `docker-compose.yml` file with optimized networking for voice streaming:
+Create a `docker compose.yml` file with optimized networking for voice streaming:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   homeassistant:
@@ -59,11 +59,11 @@ services:
     environment:
       - TZ=Africa/Cairo
     devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0  # Optional: for Zigbee/Z-Wave
+      - /dev/ttyUSB0:/dev/ttyUSB0 # Optional: for Zigbee/Z-Wave
     ports:
       - "8123:8123"
-      - "1900:1900/udp"  # For device discovery
-      - "5353:5353/udp"  # mDNS
+      - "1900:1900/udp" # For device discovery
+      - "5353:5353/udp" # mDNS
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
 
@@ -157,10 +157,10 @@ http {
 
 ```bash
 # Start Home Assistant
-docker-compose up -d
+docker compose up -d
 
 # Check logs
-docker-compose logs -f homeassistant
+docker compose logs -f homeassistant
 
 # Wait for startup, then access via https://localhost:443
 ```
@@ -266,9 +266,9 @@ arch:
 init: false
 ports:
   8080/tcp: 8080
-  3478/udp: 3478  # STUN
-  5349/tcp: 5349  # TURNS
-  49152:65535/udp: null  # RTP port range
+  3478/udp: 3478 # STUN
+  5349/tcp: 5349 # TURNS
+  49152:65535/udp: null # RTP port range
 ports_description:
   8080/tcp: Web interface
   3478/udp: STUN server
@@ -416,12 +416,12 @@ logger = logging.getLogger(__name__)
 class AudioStreamTrack(MediaStreamTrack):
     """Custom audio track for receiving streamed audio"""
     kind = "audio"
-    
+
     def __init__(self):
         super().__init__()
         self.queue = asyncio.Queue(maxsize=100)
         self._timestamp = 0
-        
+
     async def recv(self):
         frame = await self.queue.get()
         self._timestamp += frame.samples
@@ -433,7 +433,7 @@ class VoiceStreamingServer:
         self.connections: Dict[str, dict] = {}
         self.app = web.Application()
         self.setup_routes()
-        
+
     def setup_routes(self):
         self.app.router.add_get('/health', self.health_check)
         self.app.router.add_get('/ws', self.websocket_handler)
@@ -441,21 +441,21 @@ class VoiceStreamingServer:
         self.app.router.add_post('/webrtc/answer', self.handle_answer)
         self.app.router.add_post('/webrtc/candidate', self.handle_candidate)
         self.app.router.add_static('/', '/app/www')
-        
+
     async def health_check(self, request):
         return web.json_response({'status': 'healthy'})
-        
+
     async def websocket_handler(self, request):
         ws = web.WebSocketResponse()
         await ws.prepare(request)
-        
+
         connection_id = str(uuid.uuid4())
         self.connections[connection_id] = {
             'ws': ws,
             'pc': None,
             'recorder': None
         }
-        
+
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
@@ -463,31 +463,31 @@ class VoiceStreamingServer:
                     await self.handle_message(connection_id, data)
                 elif msg.type == WSMsgType.ERROR:
                     logger.error(f'WebSocket error: {ws.exception()}')
-                    
+
         except Exception as e:
             logger.error(f'WebSocket connection error: {e}')
         finally:
             await self.cleanup_connection(connection_id)
-            
+
         return ws
-        
+
     async def handle_message(self, connection_id: str, data: dict):
         message_type = data.get('type')
         connection = self.connections.get(connection_id)
-        
+
         if not connection:
             return
-            
+
         if message_type == 'start_stream':
             await self.start_voice_stream(connection_id)
         elif message_type == 'stop_stream':
             await self.stop_voice_stream(connection_id)
         elif message_type == 'webrtc_offer':
             await self.handle_webrtc_offer(connection_id, data)
-            
+
     async def start_voice_stream(self, connection_id: str):
         connection = self.connections[connection_id]
-        
+
         # Create RTCPeerConnection with optimized settings
         pc = RTCPeerConnection(configuration={
             'iceServers': [
@@ -495,58 +495,58 @@ class VoiceStreamingServer:
             ],
             'iceCandidatePoolSize': 10,
         })
-        
+
         connection['pc'] = pc
-        
+
         # Set up audio track handling
         @pc.on("track")
         async def on_track(track):
             if track.kind == "audio":
                 logger.info("Received audio track")
-                
+
                 # Create recorder for processing
                 recorder = MediaRecorder("/data/recordings/stream.wav")
                 await recorder.addTrack(track)
                 await recorder.start()
                 connection['recorder'] = recorder
-                
+
                 # Process audio frames in real-time
                 asyncio.create_task(self.process_audio_stream(track, connection_id))
-                
+
         # Send ready signal
         await connection['ws'].send_text(json.dumps({
             'type': 'stream_ready',
             'connection_id': connection_id
         }))
-        
+
     async def process_audio_stream(self, track: MediaStreamTrack, connection_id: str):
         """Process incoming audio frames with minimal latency"""
         try:
             while True:
                 frame = await track.recv()
-                
+
                 # Convert frame to numpy array
                 audio_data = np.frombuffer(frame.to_ndarray(), dtype=np.int16)
-                
+
                 # Apply real-time processing
                 if self.config['processing']['noise_suppression']:
                     audio_data = self.apply_noise_suppression(audio_data)
-                    
+
                 # Trigger Home Assistant events
                 await self.trigger_voice_event(connection_id, audio_data)
-                
+
         except Exception as e:
             logger.error(f"Audio processing error: {e}")
-            
+
     def apply_noise_suppression(self, audio_data: np.ndarray) -> np.ndarray:
         """Basic noise suppression using spectral subtraction"""
         # Implement your preferred noise suppression algorithm
         return audio_data
-        
+
     async def trigger_voice_event(self, connection_id: str, audio_data: np.ndarray):
         """Send audio data to Home Assistant for processing"""
         connection = self.connections[connection_id]
-        
+
         # Send processed audio event
         await connection['ws'].send_text(json.dumps({
             'type': 'audio_data',
@@ -555,23 +555,23 @@ class VoiceStreamingServer:
             'timestamp': asyncio.get_event_loop().time(),
             'sample_rate': self.config['audio_settings']['sample_rate']
         }))
-        
+
     async def handle_webrtc_offer(self, connection_id: str, data: dict):
         connection = self.connections[connection_id]
         pc = connection['pc']
-        
+
         if not pc:
             return
-            
+
         # Set remote description
-        offer = RTCSessionDescription(sdp=data['offer']['sdp'], 
+        offer = RTCSessionDescription(sdp=data['offer']['sdp'],
                                     type=data['offer']['type'])
         await pc.setRemoteDescription(offer)
-        
+
         # Create and send answer
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
-        
+
         await connection['ws'].send_text(json.dumps({
             'type': 'webrtc_answer',
             'answer': {
@@ -579,26 +579,26 @@ class VoiceStreamingServer:
                 'type': pc.localDescription.type
             }
         }))
-        
+
     async def cleanup_connection(self, connection_id: str):
         if connection_id in self.connections:
             connection = self.connections[connection_id]
-            
+
             if connection.get('recorder'):
                 await connection['recorder'].stop()
-                
+
             if connection.get('pc'):
                 await connection['pc'].close()
-                
+
             del self.connections[connection_id]
-            
+
     async def run_server(self):
         runner = web.AppRunner(self.app)
         await runner.setup()
-        
+
         site = web.TCPSite(runner, '0.0.0.0', 8080)
         await site.start()
-        
+
         logger.info("Voice streaming server started on port 8080")
 ```
 
@@ -607,7 +607,7 @@ class VoiceStreamingServer:
 Create `www/voice-streaming-card.js`:
 
 ```javascript
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css } from "lit";
 
 class VoiceStreamingCard extends LitElement {
   static styles = css`
@@ -618,14 +618,14 @@ class VoiceStreamingCard extends LitElement {
       background: var(--ha-card-background, white);
       box-shadow: var(--ha-card-box-shadow);
     }
-    
+
     .controls {
       display: flex;
       align-items: center;
       gap: 16px;
       margin-bottom: 16px;
     }
-    
+
     .record-button {
       width: 80px;
       height: 80px;
@@ -635,29 +635,35 @@ class VoiceStreamingCard extends LitElement {
       cursor: pointer;
       transition: all 0.3s ease;
     }
-    
+
     .record-button.inactive {
       background: #f44336;
       color: white;
     }
-    
+
     .record-button.active {
       background: #4caf50;
       color: white;
       animation: pulse 1.5s infinite;
     }
-    
+
     @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+      }
+      100% {
+        transform: scale(1);
+      }
     }
-    
+
     .status {
       flex: 1;
       text-align: center;
     }
-    
+
     .waveform {
       height: 100px;
       width: 100%;
@@ -666,26 +672,26 @@ class VoiceStreamingCard extends LitElement {
       position: relative;
       overflow: hidden;
     }
-    
+
     .waveform canvas {
       width: 100%;
       height: 100%;
     }
-    
+
     .settings {
       margin-top: 16px;
       padding: 16px;
       background: var(--secondary-background-color);
       border-radius: 4px;
     }
-    
+
     .setting-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 8px;
     }
-    
+
     .latency-indicator {
       display: inline-block;
       padding: 4px 8px;
@@ -693,10 +699,19 @@ class VoiceStreamingCard extends LitElement {
       font-size: 12px;
       font-weight: bold;
     }
-    
-    .latency-low { background: #4caf50; color: white; }
-    .latency-medium { background: #ff9800; color: white; }
-    .latency-high { background: #f44336; color: white; }
+
+    .latency-low {
+      background: #4caf50;
+      color: white;
+    }
+    .latency-medium {
+      background: #ff9800;
+      color: white;
+    }
+    .latency-high {
+      background: #f44336;
+      color: white;
+    }
   `;
 
   static properties = {
@@ -705,13 +720,13 @@ class VoiceStreamingCard extends LitElement {
     isRecording: { type: Boolean },
     connectionStatus: { type: String },
     latency: { type: Number },
-    audioLevel: { type: Number }
+    audioLevel: { type: Number },
   };
 
   constructor() {
     super();
     this.isRecording = false;
-    this.connectionStatus = 'disconnected';
+    this.connectionStatus = "disconnected";
     this.latency = 0;
     this.audioLevel = 0;
     this.mediaStream = null;
@@ -724,8 +739,8 @@ class VoiceStreamingCard extends LitElement {
   }
 
   firstUpdated() {
-    this.canvas = this.shadowRoot.querySelector('canvas');
-    this.canvasContext = this.canvas.getContext('2d');
+    this.canvas = this.shadowRoot.querySelector("canvas");
+    this.canvasContext = this.canvas.getContext("2d");
     this.initializeWebRTC();
   }
 
@@ -738,70 +753,67 @@ class VoiceStreamingCard extends LitElement {
           noiseSuppression: true,
           autoGainControl: true,
           sampleRate: 16000,
-          channelCount: 1
-        }
+          channelCount: 1,
+        },
       });
 
       // Initialize audio context for visualization
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       this.analyzer = this.audioContext.createAnalyser();
-      
+
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
       source.connect(this.analyzer);
-      
+
       this.analyzer.fftSize = 256;
       this.startAudioVisualization();
 
       // Connect to WebSocket
       await this.connectWebSocket();
-      
-      this.connectionStatus = 'connected';
+
+      this.connectionStatus = "connected";
       this.requestUpdate();
-      
     } catch (error) {
-      console.error('Error initializing WebRTC:', error);
-      this.connectionStatus = 'error';
+      console.error("Error initializing WebRTC:", error);
+      this.connectionStatus = "error";
       this.requestUpdate();
     }
   }
 
   async connectWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/api/voice-streaming/ws`;
-    
+
     this.websocket = new WebSocket(wsUrl);
-    
+
     this.websocket.onopen = () => {
-      console.log('WebSocket connected');
+      console.log("WebSocket connected");
     };
-    
+
     this.websocket.onmessage = async (event) => {
       const data = JSON.parse(event.data);
       await this.handleWebSocketMessage(data);
     };
-    
+
     this.websocket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      this.connectionStatus = 'error';
+      console.error("WebSocket error:", error);
+      this.connectionStatus = "error";
       this.requestUpdate();
     };
   }
 
   async handleWebSocketMessage(data) {
     switch (data.type) {
-      case 'stream_ready':
-        console.log('Stream ready, connection ID:', data.connection_id);
+      case "stream_ready":
+        console.log("Stream ready, connection ID:", data.connection_id);
         break;
-        
-      case 'webrtc_answer':
+
+      case "webrtc_answer":
         if (this.peerConnection) {
-          await this.peerConnection.setRemoteDescription(
-            new RTCSessionDescription(data.answer)
-          );
+          await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
         }
         break;
-        
-      case 'audio_data':
+
+      case "audio_data":
         // Handle processed audio data from server
         this.updateLatency(data.timestamp);
         break;
@@ -820,46 +832,46 @@ class VoiceStreamingCard extends LitElement {
     try {
       // Create RTCPeerConnection with minimal latency settings
       this.peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ],
-        iceCandidatePoolSize: 10
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }],
+        iceCandidatePoolSize: 10,
       });
 
       // Add audio track
-      this.mediaStream.getAudioTracks().forEach(track => {
+      this.mediaStream.getAudioTracks().forEach((track) => {
         this.peerConnection.addTrack(track, this.mediaStream);
       });
 
       // Handle ICE candidates
       this.peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-          this.websocket.send(JSON.stringify({
-            type: 'ice_candidate',
-            candidate: event.candidate
-          }));
+          this.websocket.send(
+            JSON.stringify({
+              type: "ice_candidate",
+              candidate: event.candidate,
+            })
+          );
         }
       };
 
       // Create and send offer
       const offer = await this.peerConnection.createOffer({
         offerToReceiveAudio: false,
-        offerToReceiveVideo: false
+        offerToReceiveVideo: false,
       });
-      
+
       await this.peerConnection.setLocalDescription(offer);
-      
-      this.websocket.send(JSON.stringify({
-        type: 'webrtc_offer',
-        offer: offer
-      }));
+
+      this.websocket.send(
+        JSON.stringify({
+          type: "webrtc_offer",
+          offer: offer,
+        })
+      );
 
       this.isRecording = true;
       this.requestUpdate();
-      
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error("Error starting recording:", error);
     }
   }
 
@@ -869,9 +881,11 @@ class VoiceStreamingCard extends LitElement {
       this.peerConnection = null;
     }
 
-    this.websocket.send(JSON.stringify({
-      type: 'stop_stream'
-    }));
+    this.websocket.send(
+      JSON.stringify({
+        type: "stop_stream",
+      })
+    );
 
     this.isRecording = false;
     this.requestUpdate();
@@ -879,86 +893,78 @@ class VoiceStreamingCard extends LitElement {
 
   startAudioVisualization() {
     const dataArray = new Uint8Array(this.analyzer.frequencyBinCount);
-    
+
     const draw = () => {
       requestAnimationFrame(draw);
-      
+
       this.analyzer.getByteFrequencyData(dataArray);
-      
-      this.canvasContext.fillStyle = '#f0f0f0';
+
+      this.canvasContext.fillStyle = "#f0f0f0";
       this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      
+
       const barWidth = (this.canvas.width / dataArray.length) * 2.5;
       let barHeight;
       let x = 0;
-      
+
       for (let i = 0; i < dataArray.length; i++) {
         barHeight = (dataArray[i] / 255) * this.canvas.height;
-        
+
         this.canvasContext.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
-        this.canvasContext.fillRect(x, this.canvas.height - barHeight / 2, 
-                                   barWidth, barHeight);
-        
+        this.canvasContext.fillRect(x, this.canvas.height - barHeight / 2, barWidth, barHeight);
+
         x += barWidth + 1;
       }
-      
+
       // Calculate audio level
       const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
       this.audioLevel = average;
     };
-    
+
     draw();
   }
 
   updateLatency(serverTimestamp) {
     const now = Date.now();
-    this.latency = now - (serverTimestamp * 1000);
+    this.latency = now - serverTimestamp * 1000;
     this.requestUpdate();
   }
 
   getLatencyClass() {
-    if (this.latency < 50) return 'latency-low';
-    if (this.latency < 150) return 'latency-medium';
-    return 'latency-high';
+    if (this.latency < 50) return "latency-low";
+    if (this.latency < 150) return "latency-medium";
+    return "latency-high";
   }
 
   render() {
     return html`
       <div class="card-content">
         <h2>Voice Streaming</h2>
-        
+
         <div class="controls">
-          <button 
-            class="record-button ${this.isRecording ? 'active' : 'inactive'}"
-            @click=${this.toggleRecording}
-          >
-            ${this.isRecording ? '🛑' : '🎤'}
-          </button>
-          
+          <button class="record-button ${this.isRecording ? "active" : "inactive"}" @click=${this.toggleRecording}>${this.isRecording ? "🛑" : "🎤"}</button>
+
           <div class="status">
             <div>Status: ${this.connectionStatus}</div>
-            <div class="latency-indicator ${this.getLatencyClass()}">
-              Latency: ${this.latency}ms
-            </div>
+            <div class="latency-indicator ${this.getLatencyClass()}">Latency: ${this.latency}ms</div>
           </div>
         </div>
-        
+
         <div class="waveform">
           <canvas width="400" height="100"></canvas>
         </div>
-        
+
         <div class="settings">
           <div class="setting-row">
             <label>Noise Suppression:</label>
-            <input type="checkbox" checked>
+            <input type="checkbox" checked />
           </div>
           <div class="setting-row">
             <label>Echo Cancellation:</label>
-            <input type="checkbox" checked>
+            <input type="checkbox" checked />
           </div>
           <div class="setting-row">
             <label>Auto Gain Control:</label>
-            <input type="checkbox" checked>
+            <input type="checkbox" checked />
           </div>
         </div>
       </div>
@@ -966,14 +972,14 @@ class VoiceStreamingCard extends LitElement {
   }
 }
 
-customElements.define('voice-streaming-card', VoiceStreamingCard);
+customElements.define("voice-streaming-card", VoiceStreamingCard);
 
 // Register with Home Assistant
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: 'voice-streaming-card',
-  name: 'Voice Streaming Card',
-  description: 'Real-time voice streaming with WebRTC'
+  type: "voice-streaming-card",
+  name: "Voice Streaming Card",
+  description: "Real-time voice streaming with WebRTC",
 });
 ```
 
@@ -1068,46 +1074,46 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Voice Streaming from a config entry."""
-    
+
     # Initialize the voice streaming coordinator
     coordinator = VoiceStreamingCoordinator(hass, entry)
     await coordinator.async_setup()
-    
+
     hass.data[DOMAIN][entry.entry_id] = coordinator
-    
+
     # Register WebSocket API
     hass.http.register_view(VoiceStreamingWebSocketView(coordinator))
-    
+
     return True
 
 class VoiceStreamingCoordinator:
     """Coordinator for managing voice streaming connections."""
-    
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
         self.hass = hass
         self.entry = entry
         self.connections = {}
-        
+
     async def async_setup(self):
         """Set up the coordinator."""
         # Register services
         self.hass.services.async_register(
-            DOMAIN, 
-            "start_recording", 
+            DOMAIN,
+            "start_recording",
             self.start_recording
         )
-        
+
         self.hass.services.async_register(
-            DOMAIN, 
-            "stop_recording", 
+            DOMAIN,
+            "stop_recording",
             self.stop_recording
         )
-        
+
     async def start_recording(self, call):
         """Start voice recording service."""
         _LOGGER.info("Starting voice recording")
         self.hass.bus.async_fire("voice_streaming.recording_started")
-        
+
     async def stop_recording(self, call):
         """Stop voice recording service."""
         _LOGGER.info("Stopping voice recording")
@@ -1157,10 +1163,10 @@ async def test_websocket_connection():
             await websocket.send(json.dumps({
                 "type": "test_connection"
             }))
-            
+
             response = await websocket.recv()
             print(f"Response: {response}")
-            
+
     except Exception as e:
         print(f"Connection test failed: {e}")
 
@@ -1173,17 +1179,19 @@ if __name__ == "__main__":
 **Common Issues and Solutions:**
 
 1. **WebRTC Connection Fails**
+
    ```bash
    # Check firewall settings
    sudo ufw allow 3478/udp
    sudo ufw allow 5349/tcp
    sudo ufw allow 49152:65535/udp
-   
+
    # Verify STUN server connectivity
    stun -v stun.l.google.com 19302
    ```
 
 2. **High Latency Issues**
+
    ```javascript
    // Optimize RTCPeerConnection settings
    const pc = new RTCPeerConnection({
@@ -1195,6 +1203,7 @@ if __name__ == "__main__":
    ```
 
 3. **Audio Quality Problems**
+
    ```python
    # Adjust audio processing parameters
    audio_settings = {
@@ -1216,12 +1225,14 @@ if __name__ == "__main__":
 **Final Deployment Steps:**
 
 1. **Start the complete stack:**
+
    ```bash
    cd ~/homeassistant
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. **Install the custom card in Home Assistant:**
+
    - Copy `voice-streaming-card.js` to `/config/www/`
    - Add the panel configuration to `configuration.yaml`
    - Restart Home Assistant

@@ -18,24 +18,31 @@ A complete solution for real-time voice streaming in Home Assistant using WebRTC
 ## Troubleshooting
 
 ### SSL Certificate Errors
+
 The self-signed certificate will cause browser warnings. This is normal and expected. Simply accept the certificate to proceed.
 
 ### Microphone Permissions
+
 Make sure to allow microphone access when prompted by the browser.
 
 ### Connection Issues
+
 If you experience connection issues:
-1. Check that all services are running with `docker-compose ps`
+
+1. Check that all services are running with `docker compose ps`
 2. Verify that the STUN servers are accessible
 3. Ensure no firewall is blocking the connections
 
 ## Performance
+
 The solution is optimized for minimal latency:
+
 - Average latency: ~1ms
 - WebRTC settings optimized for real-time communication
 - Automatic reconnection and error recovery
 
 ## Services
+
 - Home Assistant: https://localhost
 - WebRTC Backend: http://localhost:8080
 - Nginx Proxy: https://localhost (with SSL)

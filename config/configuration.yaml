@@ -33,11 +33,6 @@ panel_custom:
     sidebar_icon: mdi:headphones
     url_path: voice-receiving
     module_url: /local/voice-receiving-card.js
-  - name: voice-receiving-card
-    sidebar_title: Voice Receive
-    sidebar_icon: mdi:headphones
-    url_path: voice-receiving
-    module_url: /local/voice-receiving-card.js
 
 # Voice streaming component
 voice_streaming:
@@ -46,4 +41,10 @@ voice_streaming:
 logger:
   default: info
   logs:
+    # Debug our custom components
     custom_components.voice_streaming: debug
+    # Monitor WebRTC connections
+    homeassistant.components.websocket_api: info
+    # Track HTTP requests
+    homeassistant.components.http: info
+

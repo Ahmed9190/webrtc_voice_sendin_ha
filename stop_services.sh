@@ -6,6 +6,6 @@ echo "Stopping Voice Streaming Services"
 echo "================================="
 
 echo "Stopping Docker services..."
-docker-compose down
+docker compose down
 
 echo "Services stopped successfully!"

@@ -6,13 +6,13 @@ echo "Starting Voice Streaming Services"
 echo "================================="
 
 echo "Building and starting Docker services..."
-docker-compose up -d
+docker compose up -d
 
 echo "Waiting for services to start..."
 sleep 10
 
 echo "Checking service status..."
-docker-compose ps
+docker compose ps
 
 echo "Services started successfully!"
 echo "Access Home Assistant at: https://localhost"

@@ -31,12 +31,14 @@ The solution consists of four main components:
 ## Installation
 
 1. Clone this repository:
+
    ```bash
    git clone <repository-url>
    cd home_assistant
    ```
 
 2. Start the services:
+
    ```bash
    ./start_services.sh
    ```
@@ -70,7 +72,7 @@ home_assistant/
 │   └── README.md           # Backend documentation
 ├── ssl/                    # SSL certificates
 ├── nginx.conf             # Nginx configuration
-├── docker-compose.yml     # Docker Compose configuration
+├── docker compose.yml     # Docker Compose configuration
 ├── start_services.sh      # Service startup script
 └── stop_services.sh       # Service shutdown script
 ```
@@ -84,9 +86,7 @@ The backend server can be configured through `webrtc_backend/config.json`:
 ```json
 {
   "webrtc": {
-    "ice_servers": [
-      {"urls": "stun:stun.l.google.com:19302"}
-    ],
+    "ice_servers": [{ "urls": "stun:stun.l.google.com:19302" }],
     "rtc_config": {
       "bundlePolicy": "max-bundle",
       "rtcpMuxPolicy": "require",
@@ -128,12 +128,14 @@ panel_custom:
 The solution is optimized for minimal latency with:
 
 1. **WebRTC settings**:
+
    - `bundlePolicy: max-bundle`
    - `rtcpMuxPolicy: require`
    - `sdpSemantics: unified-plan`
    - `iceCandidatePoolSize: 10`
 
 2. **Audio constraints**:
+
    - Sample rate: 16kHz
    - Mono channel
    - Echo cancellation
@@ -158,18 +160,22 @@ python integration_test.py
 ### Common Issues
 
 1. **SSL Certificate Errors**:
+
    - The self-signed certificate will cause browser warnings
    - Accept the certificate to proceed
 
 2. **Microphone Permissions**:
+
    - Allow microphone access when prompted by the browser
 
 3. **Permission denied errors**:
+
    - Ensure Docker is installed and your user is in the docker group
    - Run `sudo usermod -aG docker $USER` and log out/in
 
 4. **Services not starting**:
-   - Check Docker logs: `docker-compose logs`
+
+   - Check Docker logs: `docker compose logs`
    - Verify ports are not in use
 
 5. **WebRTC connection failures**:
@@ -179,8 +185,9 @@ python integration_test.py
 ### Logs
 
 View service logs with:
+
 ```bash
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ## Development
@@ -188,6 +195,7 @@ docker-compose logs -f
 ### Backend Development
 
 1. Create a virtual environment:
+
    ```bash
    cd webrtc_backend
    python -m venv venv
