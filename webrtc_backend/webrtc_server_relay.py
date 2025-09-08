@@ -271,22 +271,26 @@ class VoiceStreamingServer:
         if pc and pc.remoteDescription:
             # The candidate might be a dict, we need to convert it to RTCIceCandidate
             candidate_data = data["candidate"]
+            logger.info(f"Received ICE candidate data: {candidate_data}")
+            
             if isinstance(candidate_data, dict):
-                # For aiortc, we can directly pass the dictionary
-                # aiortc will parse the candidate string automatically
+                # For aiortc, we need to ensure the dictionary has the correct format
                 # Check if the dictionary has the required keys
                 if 'candidate' in candidate_data:
                     try:
+                        # Try to create an RTCIceCandidate from the dictionary
+                        # aiortc expects specific keys in the dictionary
                         await pc.addIceCandidate(candidate_data)
                     except Exception as e:
-                        logger.error(f"Error adding ICE candidate: {e}")
+                        logger.error(f"Error adding ICE candidate (dict): {e}")
+                        logger.error(f"Candidate data: {candidate_data}")
                 else:
                     logger.error(f"Invalid ICE candidate format: {candidate_data}")
             else:
                 try:
                     await pc.addIceCandidate(candidate_data)
                 except Exception as e:
-                    logger.error(f"Error adding ICE candidate: {e}")
+                    logger.error(f"Error adding ICE candidate (object): {e}")
 
     async def cleanup_connection(self, connection_id: str):
         if connection_id in self.connections:
