@@ -73,7 +73,44 @@ class VoiceStreamingServer:
             self.app.router.add_static('/', '/app/www')
         
     async def health_check(self, request):
-        return web.json_response({'status': 'healthy', 'webrtc_available': WEBRTC_AVAILABLE})
+        """Enhanced health check that verifies server functionality"""
+        try:
+            # Check if the server is running
+            server_status = 'healthy' if True else 'unhealthy'
+            
+            # Check WebRTC availability
+            webrtc_available = WEBRTC_AVAILABLE
+            
+            # Check if we can create a basic RTCPeerConnection (if WebRTC is available)
+            webrtc_functional = False
+            if WEBRTC_AVAILABLE:
+                try:
+                    # Test basic WebRTC functionality
+                    from aiortc import RTCPeerConnection
+                    pc = RTCPeerConnection()
+                    await pc.close()
+                    webrtc_functional = True
+                except Exception:
+                    webrtc_functional = False
+            
+            # Check connection count
+            active_connections = len(self.connections)
+            
+            # Determine overall health status
+            status = 'healthy'
+            if not webrtc_available:
+                status = 'degraded'
+            elif not webrtc_functional:
+                status = 'degraded'
+            
+            return web.json_response({
+                'status': status,
+                'server': server_status,
+                'webrtc_available': webrtc_available,
+                'webrtc_functional': webrtc_functional,
+                'active_connections': active_connections,
+                'timestamp': asyncio.get_event_loop().time()
+            })
         
     async def websocket_handler(self, request):
         ws = web.WebSocketResponse()

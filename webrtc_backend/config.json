@@ -1,6 +1,3 @@
-# WebRTC Optimization Configuration
-# This file contains settings to optimize the WebRTC connection for minimal latency
-
 {
   "webrtc": {
     "ice_servers": [
@@ -9,6 +6,20 @@
       },
       {
         "urls": "stun:stun1.l.google.com:19302"
+      },
+      {
+        "urls": "stun:stun.stunprotocol.org:3478"
+      },
+      {
+        "urls": "stun:stun.voiparound.com"
+      },
+      {
+        "urls": "stun:stun.voipbuster.com"
+      },
+      {
+        "urls": "turn:coturn:3478",
+        "username": "voice",
+        "credential": "streaming"
       }
     ],
     "rtc_config": {
@@ -26,7 +37,7 @@
       "latency": 0
     },
     "connection_timeout": 30,
-    "reconnect_attempts": 3
+    "reconnect_attempts": 5
   },
   "server": {
     "port": 8080,

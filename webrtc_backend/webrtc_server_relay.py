@@ -22,14 +22,42 @@ class VoiceStreamingServer:
         self.app.router.add_get("/ws", self.websocket_handler)
 
     async def health_check(self, request):
-        return web.json_response(
-            {
-                "status": "healthy",
-                "webrtc_available": True,
-                "active_streams": len(self.active_streams),
-                "connected_clients": len(self.connections),
-            }
-        )
+        """Enhanced health check that verifies server functionality"""
+        try:
+            # Check if the server is running
+            server_status = 'healthy'
+            
+            # Check WebRTC availability (always True in relay server since it imports aiortc)
+            webrtc_available = True
+            
+            # Test basic WebRTC functionality
+            webrtc_functional = False
+            try:
+                # Test basic WebRTC functionality
+                pc = RTCPeerConnection()
+                await pc.close()
+                webrtc_functional = True
+            except Exception:
+                webrtc_functional = False
+            
+            # Check connection count
+            active_connections = len(self.connections)
+            active_streams = len(self.active_streams)
+            
+            # Determine overall health status
+            status = 'healthy'
+            if not webrtc_functional:
+                status = 'degraded'
+            
+            return web.json_response({
+                'status': status,
+                'server': server_status,
+                'webrtc_available': webrtc_available,
+                'webrtc_functional': webrtc_functional,
+                'active_connections': active_connections,
+                'active_streams': active_streams,
+                'timestamp': asyncio.get_event_loop().time()
+            })
 
     async def websocket_handler(self, request):
         ws = web.WebSocketResponse()

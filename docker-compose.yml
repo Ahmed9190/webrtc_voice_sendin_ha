@@ -32,6 +32,31 @@ services:
     restart: unless-stopped
     volumes:
       - ./webrtc_backend:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  coturn:
+    container_name: coturn-server
+    image: coturn/coturn:latest
+    command:
+      - "-c"
+      - "/etc/coturn/coturn.conf"
+    ports:
+      - "3478:3478"
+      - "3478:3478/udp"
+      - "5349:5349"
+      - "5349:5349/udp"
+      - "49152-65535:49152-65535/udp"
+    environment:
+      - TZ=Africa/Cairo
+      - EXTERNAL_IP=${EXTERNAL_IP:-127.0.0.1}
+    restart: unless-stopped
+    volumes:
+      - ./coturn.conf:/etc/coturn/coturn.conf:ro
 
   # Optional: Nginx proxy for HTTPS (required for WebRTC)
   nginx:
@@ -47,6 +72,7 @@ services:
     depends_on:
       - homeassistant
       - voice_streaming
+      - coturn
 
 networks:
   default:

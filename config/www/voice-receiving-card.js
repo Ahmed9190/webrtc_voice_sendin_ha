@@ -508,11 +508,19 @@
           return;
         }
         
-        // Create RTCPeerConnection with optimized settings
+        // Create RTCPeerConnection with optimized settings including TURN server
         this.peerConnection = new RTCPeerConnection({
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun.stunprotocol.org:3478' },
+            { urls: 'stun:stun.voiparound.com' },
+            { urls: 'stun:stun.voipbuster.com' },
+            { 
+              urls: 'turn:coturn:3478',
+              username: 'voice',
+              credential: 'streaming'
+            }
           ],
           bundlePolicy: 'max-bundle',
           rtcpMuxPolicy: 'require',
@@ -541,24 +549,53 @@
           }
         };
 
-        // Handle ICE candidates
+        // Add detailed ICE candidate logging for debugging
         this.peerConnection.onicecandidate = (event) => {
-          if (event.candidate && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-            this.websocket.send(JSON.stringify({
-              type: 'ice_candidate',
-              candidate: event.candidate
-            }));
+          if (event.candidate) {
+            console.log('Sending ICE candidate:', event.candidate);
+            if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+              this.websocket.send(JSON.stringify({
+                type: 'ice_candidate',
+                candidate: event.candidate
+              }));
+            }
+          } else {
+            console.log('ICE candidate gathering completed');
           }
         };
 
-        // Handle ICE connection state changes
+        // Handle ICE connection state changes with more detailed logging
         this.peerConnection.oniceconnectionstatechange = () => {
           console.log('ICE connection state:', this.peerConnection.iceConnectionState);
-          if (this.peerConnection.iceConnectionState === 'failed' || 
-              this.peerConnection.iceConnectionState === 'disconnected') {
-            console.log('ICE connection failed or disconnected');
+          if (this.peerConnection.iceConnectionState === 'checking') {
+            console.log('ICE candidates are being checked...');
+          } else if (this.peerConnection.iceConnectionState === 'connected') {
+            console.log('ICE connection established successfully');
+            this.updateStatus('connected');
+            this.errorMessage = '';
+            this.updateError();
+          } else if (this.peerConnection.iceConnectionState === 'disconnected') {
+            console.log('ICE connection disconnected, attempting to reconnect...');
+            this.updateStatus('connecting');
+            this.errorMessage = 'Connection temporarily lost, reconnecting...';
+            this.updateError();
+          } else if (this.peerConnection.iceConnectionState === 'failed') {
+            console.log('ICE connection failed');
             this.updateStatus('error');
-            this.errorMessage = 'Connection failed';
+            this.errorMessage = 'Connection failed - Network issues detected';
+            this.updateError();
+          } else if (this.peerConnection.iceConnectionState === 'closed') {
+            console.log('ICE connection closed');
+          }
+        };
+
+        // Handle connection state changes
+        this.peerConnection.onconnectionstatechange = () => {
+          console.log('PeerConnection state:', this.peerConnection.connectionState);
+          if (this.peerConnection.connectionState === 'failed') {
+            console.log('PeerConnection failed');
+            this.updateStatus('error');
+            this.errorMessage = 'Connection failed - Peer connection error';
             this.updateError();
           }
         };
