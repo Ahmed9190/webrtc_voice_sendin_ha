@@ -12,7 +12,6 @@ A complete solution for real-time voice streaming in Home Assistant using WebRTC
 - **Error handling**: Automatic reconnection and recovery mechanisms
 - **Voice sending capabilities**: Dedicated panel for sending voice streams
 - **Voice receiving capabilities**: Dedicated panel for receiving and playing back voice streams
-- **TURN server support**: Built-in coturn server for NAT traversal (especially important for Windows)
 
 ## Architecture
 
@@ -22,7 +21,6 @@ The solution consists of four main components:
 2. **WebRTC Backend**: Python server handling WebRTC connections and audio processing
 3. **Voice Sending Card**: Custom panel for sending voice streams
 4. **Voice Receiving Card**: Custom panel for receiving and playing back voice streams
-5. **TURN Server (coturn)**: Server for NAT traversal, especially important for Windows machines
 
 ## Prerequisites
 
@@ -88,18 +86,7 @@ The backend server can be configured through `webrtc_backend/config.json`:
 ```json
 {
   "webrtc": {
-    "ice_servers": [
-      { "urls": "stun:stun.l.google.com:19302" },
-      { "urls": "stun:stun1.l.google.com:19302" },
-      { "urls": "stun:stun.stunprotocol.org:3478" },
-      { "urls": "stun:stun.voiparound.com" },
-      { "urls": "stun:stun.voipbuster.com" },
-      { 
-        "urls": "turn:coturn:3478",
-        "username": "voice",
-        "credential": "streaming"
-      }
-    ],
+    "ice_servers": [{ "urls": "stun:stun.l.google.com:19302" }],
     "rtc_config": {
       "bundlePolicy": "max-bundle",
       "rtcpMuxPolicy": "require",
@@ -116,8 +103,6 @@ The backend server can be configured through `webrtc_backend/config.json`:
   }
 }
 ```
-
-The server automatically loads this configuration file at startup. Changes to the configuration will be applied when the server is restarted.
 
 ### Home Assistant
 
@@ -161,8 +146,6 @@ The solution is optimized for minimal latency with:
    - Host networking mode
    - Optimized Nginx proxy settings
    - Direct WebSocket communication
-   - TURN server for NAT traversal
-   - Restricted port range (49152-49252) for Windows compatibility
 
 ## Testing
 
@@ -171,32 +154,6 @@ Run the integration tests to verify the setup:
 ```bash
 python integration_test.py
 ```
-
-### Health Checks
-
-The service includes comprehensive health checks:
-
-1. **Docker Health Check**: Automatic container health monitoring
-2. **HTTP Health Endpoint**: `GET /health` for detailed status information
-3. **Manual Health Check**: Run `python health_check.py` for detailed diagnostics
-
-The health endpoint returns detailed information:
-```json
-{
-  "status": "healthy",
-  "server": "healthy",
-  "webrtc_available": true,
-  "webrtc_functional": true,
-  "active_connections": 0,
-  "active_streams": 0,
-  "timestamp": 1234567890.123
-}
-```
-
-Status values:
-- `healthy`: All systems operational
-- `degraded`: Some features may not work properly
-- `unhealthy`: Critical failure
 
 ## Troubleshooting
 
@@ -223,8 +180,7 @@ Status values:
 
 5. **WebRTC connection failures**:
    - Check firewall settings
-   - Verify STUN/TURN server connectivity
-   - **Windows-specific**: See WINDOWS_TROUBLESHOOTING.md for detailed Windows troubleshooting
+   - Verify STUN server connectivity
 
 ### Logs
 
@@ -273,4 +229,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Home Assistant community
 - aiortc library for WebRTC implementation
 - Web Components for frontend
-- coturn project for TURN server implementation

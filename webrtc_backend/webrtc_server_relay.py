@@ -22,41 +22,12 @@ class VoiceStreamingServer:
         self.app.router.add_get("/ws", self.websocket_handler)
 
     async def health_check(self, request):
-        """Enhanced health check that verifies server functionality"""
-        # Check if the server is running
-        server_status = "healthy"
-
-        # Check WebRTC availability (always True in relay server since it imports aiortc)
-        webrtc_available = True
-
-        # Test basic WebRTC functionality
-        webrtc_functional = False
-        try:
-            # Test basic WebRTC functionality
-            pc = RTCPeerConnection()
-            await pc.close()
-            webrtc_functional = True
-        except Exception:
-            webrtc_functional = False
-
-        # Check connection count
-        active_connections = len(self.connections)
-        active_streams = len(self.active_streams)
-
-        # Determine overall health status
-        status = "healthy"
-        if not webrtc_functional:
-            status = "degraded"
-
         return web.json_response(
             {
-                "status": status,
-                "server": server_status,
-                "webrtc_available": webrtc_available,
-                "webrtc_functional": webrtc_functional,
-                "active_connections": active_connections,
-                "active_streams": active_streams,
-                "timestamp": asyncio.get_event_loop().time(),
+                "status": "healthy",
+                "webrtc_available": True,
+                "active_streams": len(self.active_streams),
+                "connected_clients": len(self.connections),
             }
         )
 
@@ -300,20 +271,22 @@ class VoiceStreamingServer:
         if pc and pc.remoteDescription:
             # The candidate might be a dict, we need to convert it to RTCIceCandidate
             candidate_data = data["candidate"]
-            logger.info(f"Received ICE candidate data: {candidate_data}")
-
             if isinstance(candidate_data, dict):
                 # For aiortc, we can directly pass the dictionary
                 # aiortc will parse the candidate string automatically
-                try:
-                    await pc.addIceCandidate(candidate_data)
-                except Exception as e:
-                    logger.error(f"Error adding ICE candidate: {e}")
+                # Check if the dictionary has the required keys
+                if 'candidate' in candidate_data:
+                    try:
+                        await pc.addIceCandidate(candidate_data)
+                    except Exception as e:
+                        logger.error(f"Error adding ICE candidate: {e}")
+                else:
+                    logger.error(f"Invalid ICE candidate format: {candidate_data}")
             else:
                 try:
                     await pc.addIceCandidate(candidate_data)
                 except Exception as e:
-                    logger.error(f"Error adding ICE candidate (object): {e}")
+                    logger.error(f"Error adding ICE candidate: {e}")
 
     async def cleanup_connection(self, connection_id: str):
         if connection_id in self.connections:

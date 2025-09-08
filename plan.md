@@ -96,14 +96,6 @@ Tasks completed:
 - Created integration tests to verify end-to-end functionality
 - Created startup and shutdown scripts for easier service management
 - Added reconnect logic to handle connection failures
-- **Added TURN server (coturn) for NAT traversal, especially important for Windows compatibility**
-- **Updated ICE server configuration with multiple STUN servers and TURN server**
-- **Enhanced ICE candidate logging for better debugging**
-- **Created Windows troubleshooting guide**
-- **Implemented comprehensive health check system with detailed status reporting**
-- **Added Docker health check with automatic container monitoring**
-- **Fixed Windows port permission issues by restricting TURN server port range**
-- **Updated server to properly load and use configuration from config.json file**
 
 ## Summary
 
@@ -117,7 +109,5 @@ We have successfully implemented a complete voice streaming solution for Home As
 6. **Performance optimization** - With configurable settings for minimal latency
 7. **Error handling and recovery** - With automatic reconnection capabilities
 8. **Voice receiving capabilities** - Dedicated card for receiving and playing back voice streams with visualization
-9. **TURN server support** - Built-in coturn server for NAT traversal, especially important for Windows machines
-10. **Enhanced Windows compatibility** - Multiple STUN servers, detailed logging, and troubleshooting guide
 
 The solution is ready for deployment and testing in a Home Assistant environment.

@@ -2,14 +2,6 @@
 # start_services.sh
 # Script to start all services for the voice streaming setup
 
-# Set the external IP for the TURN server
-export EXTERNAL_IP=$(curl -s https://ipinfo.io/ip)
-if [ -z "$EXTERNAL_IP" ]; then
-    echo "Warning: Could not determine external IP, using localhost"
-    export EXTERNAL_IP="127.0.0.1"
-fi
-echo "Using external IP: $EXTERNAL_IP"
-
 echo "Starting Voice Streaming Services"
 echo "================================="
 

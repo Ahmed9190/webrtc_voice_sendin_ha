@@ -248,19 +248,11 @@
         this.analyzer.fftSize = 256;
         this.startAudioVisualization();
 
-        // Create RTCPeerConnection with optimized settings including TURN server
+        // Create RTCPeerConnection with optimized settings
         this.peerConnection = new RTCPeerConnection({
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun.stunprotocol.org:3478' },
-            { urls: 'stun:stun.voiparound.com' },
-            { urls: 'stun:stun.voipbuster.com' },
-            { 
-              urls: 'turn:coturn:3478',
-              username: 'voice',
-              credential: 'streaming'
-            }
+            { urls: 'stun:stun1.l.google.com:19302' }
           ],
           bundlePolicy: 'max-bundle',
           rtcpMuxPolicy: 'require',
