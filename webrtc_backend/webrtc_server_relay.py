@@ -23,41 +23,42 @@ class VoiceStreamingServer:
 
     async def health_check(self, request):
         """Enhanced health check that verifies server functionality"""
+        # Check if the server is running
+        server_status = "healthy"
+
+        # Check WebRTC availability (always True in relay server since it imports aiortc)
+        webrtc_available = True
+
+        # Test basic WebRTC functionality
+        webrtc_functional = False
         try:
-            # Check if the server is running
-            server_status = 'healthy'
-            
-            # Check WebRTC availability (always True in relay server since it imports aiortc)
-            webrtc_available = True
-            
             # Test basic WebRTC functionality
+            pc = RTCPeerConnection()
+            await pc.close()
+            webrtc_functional = True
+        except Exception:
             webrtc_functional = False
-            try:
-                # Test basic WebRTC functionality
-                pc = RTCPeerConnection()
-                await pc.close()
-                webrtc_functional = True
-            except Exception:
-                webrtc_functional = False
-            
-            # Check connection count
-            active_connections = len(self.connections)
-            active_streams = len(self.active_streams)
-            
-            # Determine overall health status
-            status = 'healthy'
-            if not webrtc_functional:
-                status = 'degraded'
-            
-            return web.json_response({
-                'status': status,
-                'server': server_status,
-                'webrtc_available': webrtc_available,
-                'webrtc_functional': webrtc_functional,
-                'active_connections': active_connections,
-                'active_streams': active_streams,
-                'timestamp': asyncio.get_event_loop().time()
-            })
+
+        # Check connection count
+        active_connections = len(self.connections)
+        active_streams = len(self.active_streams)
+
+        # Determine overall health status
+        status = "healthy"
+        if not webrtc_functional:
+            status = "degraded"
+
+        return web.json_response(
+            {
+                "status": status,
+                "server": server_status,
+                "webrtc_available": webrtc_available,
+                "webrtc_functional": webrtc_functional,
+                "active_connections": active_connections,
+                "active_streams": active_streams,
+                "timestamp": asyncio.get_event_loop().time(),
+            }
+        )
 
     async def websocket_handler(self, request):
         ws = web.WebSocketResponse()
@@ -300,11 +301,11 @@ class VoiceStreamingServer:
             # The candidate might be a dict, we need to convert it to RTCIceCandidate
             candidate_data = data["candidate"]
             logger.info(f"Received ICE candidate data: {candidate_data}")
-            
+
             if isinstance(candidate_data, dict):
                 # For aiortc, we need to ensure the dictionary has the correct format
                 # Check if the dictionary has the required keys
-                if 'candidate' in candidate_data:
+                if "candidate" in candidate_data:
                     try:
                         # Try to create an RTCIceCandidate from the dictionary
                         # aiortc expects specific keys in the dictionary
