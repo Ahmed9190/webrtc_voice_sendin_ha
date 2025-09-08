@@ -274,10 +274,14 @@ class VoiceStreamingServer:
             if isinstance(candidate_data, dict):
                 # For aiortc, we can directly pass the dictionary
                 # aiortc will parse the candidate string automatically
-                try:
-                    await pc.addIceCandidate(candidate_data)
-                except Exception as e:
-                    logger.error(f"Error adding ICE candidate: {e}")
+                # Check if the dictionary has the required keys
+                if 'candidate' in candidate_data:
+                    try:
+                        await pc.addIceCandidate(candidate_data)
+                    except Exception as e:
+                        logger.error(f"Error adding ICE candidate: {e}")
+                else:
+                    logger.error(f"Invalid ICE candidate format: {candidate_data}")
             else:
                 try:
                     await pc.addIceCandidate(candidate_data)
