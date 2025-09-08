@@ -60,7 +60,7 @@ class VoiceStreamingServer:
                     "auto_gain_control": True,
                 },
                 "connection_timeout": 30,
-                "reconnect_attempts": 3,
+                "reconnect_attempts": 5,
             },
             "server": {
                 "port": 8080,
@@ -69,7 +69,18 @@ class VoiceStreamingServer:
                 "queue_size": 100,
             },
         }
-
+        
+        # Load configuration from file if provided
+        if config_path and os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    file_config = json.load(f)
+                    # Merge with default configuration
+                    self.config = {**self.config, **file_config}
+                    logger.info(f"Loaded configuration from {config_path}")
+            except Exception as e:
+                logger.error(f"Failed to load configuration from {config_path}: {e}")
+        
         self.connections: Dict[str, dict] = {}
         self.app = web.Application()
         self.setup_routes()
@@ -340,8 +351,9 @@ if __name__ == "__main__":
     # Configure logging
     logging.basicConfig(level=logging.INFO)
 
-    # Create and run the server
-    server = VoiceStreamingServer()
+    # Create and run the server with config file
+    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    server = VoiceStreamingServer(config_path)
 
     try:
         asyncio.run(server.run_server())

@@ -103,6 +103,7 @@ Tasks completed:
 - **Implemented comprehensive health check system with detailed status reporting**
 - **Added Docker health check with automatic container monitoring**
 - **Fixed Windows port permission issues by restricting TURN server port range**
+- **Updated server to properly load and use configuration from config.json file**
 
 ## Summary
 

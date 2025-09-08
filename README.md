@@ -115,6 +115,9 @@ The backend server can be configured through `webrtc_backend/config.json`:
     }
   }
 }
+```
+
+The server automatically loads this configuration file at startup. Changes to the configuration will be applied when the server is restarted.
 
 ### Home Assistant
 
