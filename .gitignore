@@ -209,10 +209,5 @@ config/.uuid
 config/.secrets.yaml
 config/.secrets.yaml.tmp
 
-# SSL certificates
-ssl/homeassistant.crt
-ssl/homeassistant.key
-ssl/openssl.cnf
-
 # Virtual environment
 venv/
